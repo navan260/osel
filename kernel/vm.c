@@ -323,6 +323,57 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   return -1;
 }
 
+
+
+int
+uvmcowcopy(pagetable_t old, pagetable_t new, uint64 sz)
+{
+  pte_t *pte;
+  uint64 pa, i;
+  uint flags;
+  // char *mem;
+
+    for(i = 0; i < sz; i += PGSIZE){
+    if((pte = walk(old, i, 0)) == 0)
+      continue;
+    if((*pte & PTE_V) == 0)
+      continue;
+
+    pa = PTE2PA(*pte); // Get the physical address
+
+    /* Step 1: The COW "Trick"
+       If the page is writable, we make it read-only and mark it as COW.
+    */
+    if(*pte & PTE_W) {
+        *pte &= ~PTE_W;   // Remove Writable bit
+        *pte |= PTE_COW;  // Add our custom COW bit
+    }
+
+    flags = PTE_FLAGS(*pte); // Extract the updated flags
+
+    /* Step 2: Map the Child
+       We map the child to the EXACT SAME physical address 'pa'.
+    */
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      goto err; // If this fails, we need to handle it
+    }
+
+    /* Step 3: Increment the Reference Count
+       Since another process is now using this physical page,
+       we must increment our tracking array.
+    */
+    incref(pa); 
+}
+  return 0;
+
+ err:
+  uvmunmap(new, 0, i / PGSIZE, 1);
+  return -1;
+}
+
+
+
+
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
 void
@@ -454,13 +505,30 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
 {
   uint64 mem;
   struct proc *p = myproc();
+  pte_t *pte;
 
   if (va >= p->sz)
     return 0;
   va = PGROUNDDOWN(va);
-  if(ismapped(pagetable, va)) {
+  
+  if((pte = walk(pagetable, va, 0)) != 0 && (*pte & PTE_V)){
+    if(read == 0 && (*pte & PTE_COW)){ // Write fault on COW page
+      uint64 pa = PTE2PA(*pte);
+      uint flags = PTE_FLAGS(*pte);
+
+      char *new_mem = kalloc();
+      if(new_mem == 0)
+        return 0;
+      
+      memmove(new_mem, (char*)pa, PGSIZE);
+
+      *pte = PA2PTE((uint64)new_mem) | ((flags & ~PTE_COW) | PTE_W);
+      kfree((void*)pa); // Decrement ref count
+      return (uint64)new_mem;
+    }
     return 0;
   }
+
   mem = (uint64) kalloc();
   if(mem == 0)
     return 0;

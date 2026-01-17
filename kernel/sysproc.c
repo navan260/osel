@@ -107,3 +107,30 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_getyear(void)
+{
+  return 2026;
+}
+
+uint64
+sys_getpa(void)
+{
+  uint64 va;
+  argaddr(0, &va);
+  return walkaddr(myproc()->pagetable, va);
+  // return va;
+}
+
+uint64
+sys_cowfork(void)
+{
+  return kcowfork();
+}
+
+uint64
+sys_memfree(void)
+{
+  return get_free_pages();
+}

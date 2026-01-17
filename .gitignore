@@ -16,3 +16,6 @@ kernel/kernel
 user/usys.S
 .gdbinit
 TAGS
+.venv
+todo.md
+ins.md

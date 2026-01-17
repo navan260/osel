@@ -42,3 +42,7 @@ entry("getpid");
 entry("sbrk");
 entry("pause");
 entry("uptime");
+entry("getyear");
+entry("getpa");
+entry("cowfork");
+entry("memfree");
