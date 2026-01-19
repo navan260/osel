@@ -21,19 +21,19 @@ int main(int argc, char *argv[]) {
     if (pid == 0) {
         // Child
         printf("Child (PID %d) [Before Write]:\n", getpid());
-        printf("  Stack:  VA=%p, PA=%p\n", &var, (void*)getpa(&var));
+        printf("Virtual address=%p, Physical address=%p\n", &var, (void*)getpa(&var));
 
-        //var = 100;
+        var = 100;
 
         printf("Child (PID %d) [After Write]:\n", getpid());
-        printf("  Stack:  VA=%p, PA=%p\n", &var, (void*)getpa(&var));
+        printf("Virtual address=%p, Physical address=%p\n", &var, (void*)getpa(&var));
         
         exit(0);
     } else {
         // Parent
         wait(0);
         printf("Parent (PID %d) [After Child Exit]:\n", getpid());
-        printf("  Stack:  VA=%p, PA=%p\n", &var, (void*)getpa(&var));
+        printf("Virtual address=%p, Physical address=%p\n", &var, (void*)getpa(&var));
     }
 
     exit(0);
