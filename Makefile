@@ -148,6 +148,7 @@ UPROGS=\
 	$U/_forkdemo\
 	$U/_cowforkdemo\
 	$U/_bench\
+	$U/_demoaddr
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
